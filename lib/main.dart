@@ -1,6 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
+import 'package:ticker/ticker_text.dart';
 
 void main() {
   runApp(const RenderObjectTest());
@@ -13,55 +12,55 @@ class RenderObjectTest extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       home: Scaffold(
-        body: Opacity(opacity: .1),
+        body: Center(child: TickingText()),
       ),
     );
   }
 }
 
-class Gap extends LeafRenderObjectWidget {
-  const Gap(
-    this.mainAxisExtent, {
-    Key? key,
-  })  : assert(mainAxisExtent >= 0 && mainAxisExtent < double.infinity),
-        super(key: key);
-  final double mainAxisExtent;
-  @override
-  _RenderGap createRenderObject(BuildContext context) {
-    return _RenderGap(mainAxisExtent: mainAxisExtent);
-  }
+class TickingText extends StatefulWidget {
+  const TickingText({super.key});
 
   @override
-  void updateRenderObject(
-      BuildContext context, covariant _RenderGap renderObject) {
-    renderObject.mainAxisExtent = mainAxisExtent;
-  }
+  State<TickingText> createState() => _TickingTextState();
 }
 
-class _RenderGap extends RenderBox {
-  _RenderGap({
-    double? mainAxisExtent,
-  }) : _mainAxisExtent = mainAxisExtent!;
-  double get mainAxisExtent => _mainAxisExtent;
-  double _mainAxisExtent;
-  set mainAxisExtent(double value) {
-    if (_mainAxisExtent != value) {
-      _mainAxisExtent = value;
-      markNeedsLayout();
-    }
+class _TickingTextState extends State<TickingText>
+    with SingleTickerProviderStateMixin {
+  int _value = 12345;
+  Animation<double>? _animation;
+  AnimationController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+        duration: const Duration(milliseconds: 1000), vsync: this);
+    _animation = Tween(begin: 0.0, end: 1.0).animate(_controller!);
+    _controller?.addListener(() {
+      setState(() {});
+    });
   }
 
   @override
-  void performLayout() {
-    final flex = parent!;
-    if (flex is RenderFlex) {
-      if (flex.direction == Axis.horizontal) {
-        size = constraints.constrain(Size(mainAxisExtent, 0));
-      } else {
-        size = constraints.constrain(Size(0, mainAxisExtent));
-      }
-    } else {
-      throw FlutterError('Gap widget is not inside a flex parent');
-    }
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TickerText(
+          _value.toString(),
+          style: const TextStyle(color: Colors.black, fontSize: 32.0),
+          verticalOffset: _animation!.value,
+        ),
+        ElevatedButton(
+            onPressed: () {
+              setState(() {
+                _value = 12346;
+                _controller?.forward();
+              });
+            },
+            child: Text('data')),
+      ],
+    );
   }
 }
