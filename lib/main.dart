@@ -40,6 +40,11 @@ class _TickingTextState extends State<TickingText>
     _controller?.addListener(() {
       setState(() {});
     });
+    _controller?.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _controller?.reset();
+      }
+    });
   }
 
   @override
@@ -55,7 +60,7 @@ class _TickingTextState extends State<TickingText>
         ElevatedButton(
             onPressed: () {
               setState(() {
-                _value = 12346;
+                _value++;
                 _controller?.forward();
               });
             },

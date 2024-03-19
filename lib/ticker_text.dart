@@ -84,12 +84,14 @@ class RenderTicker extends RenderBox {
     painter.layout();
     _textPainter.layout();
     size = constraints.constrain(painter.size);
-    print(size);
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
     if (_verticalOffset == 0.0) {
+      _textPainter.text = TextSpan(text: _value, style: _style);
+      _layoutText(
+          minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
       _textPainter.paint(context.canvas, offset);
       return;
     }
