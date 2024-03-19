@@ -88,7 +88,6 @@ class RenderTicker extends RenderBox {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    context.canvas.drawCircle(offset, 2, Paint()..color = Colors.black);
     if (_verticalOffset == 0.0) {
       _textPainter.paint(context.canvas, offset);
       return;
@@ -96,17 +95,22 @@ class RenderTicker extends RenderBox {
     double offsetX = 0.0;
     for (int i = 0; i < _value.length; i++) {
       if (_value[i] == _previousValue[i]) {
-        _textPainter.text = TextSpan(text: _value[i], style: _style);
+        _textPainter.text = TextSpan(text: _previousValue[i], style: _style);
         _layoutText(
             minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
-        print('$i --> ${offset + Offset(offsetX, 0.0)}');
         _textPainter.paint(context.canvas, offset + Offset(offsetX, 0.0));
         offsetX += _textPainter.width;
       } else {
+        _textPainter.text = TextSpan(text: _previousValue[i], style: _style);
+        _layoutText(
+            minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+        _textPainter.paint(context.canvas,
+            offset + Offset(offsetX, _verticalOffset * size.height * -1));
         _nextPainter.text = TextSpan(text: _value[i], style: _style);
         _nextPainter.layout();
         _nextPainter.paint(context.canvas,
-            offset + Offset(offsetX, _verticalOffset * size.height * -1));
+            offset + Offset(offsetX, (_verticalOffset - 1) * size.height * -1));
+        offsetX += _nextPainter.width;
       }
     }
   }
