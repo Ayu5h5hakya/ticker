@@ -84,6 +84,7 @@ class RenderTicker extends RenderBox {
     painter.layout();
     _textPainter.layout();
     size = constraints.constrain(painter.size);
+    print(size);
   }
 
   @override
@@ -93,6 +94,9 @@ class RenderTicker extends RenderBox {
       return;
     }
     double offsetX = 0.0;
+    context.canvas.save();
+    context.canvas
+        .clipRect(Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height));
     for (int i = 0; i < _value.length; i++) {
       if (_value[i] == _previousValue[i]) {
         _textPainter.text = TextSpan(text: _previousValue[i], style: _style);
@@ -113,6 +117,7 @@ class RenderTicker extends RenderBox {
         offsetX += _nextPainter.width;
       }
     }
+    context.canvas.restore();
   }
 
   void _layoutText({double minWidth = 0.0, double maxWidth = double.infinity}) {
