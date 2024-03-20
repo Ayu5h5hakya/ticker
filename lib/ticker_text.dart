@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
 
 class TickerText extends SingleChildRenderObjectWidget {
-  const TickerText(this.value,
-      {super.key, this.style, this.verticalOffset = 0.0});
-  final String value;
+  const TickerText(
+    this.data, {
+    super.key,
+    this.style,
+    this.curve = Curves.linear,
+    this.duration = const Duration(milliseconds: 500),
+    this.reverseDuration,
+    required this.vsync,
+  });
+  final String data;
   final TextStyle? style;
-  final double verticalOffset;
+  final Curve curve;
+  final Duration duration;
+  final Duration? reverseDuration;
+  final TickerProvider vsync;
 
   @override
   RenderObject createRenderObject(BuildContext context) {
@@ -15,7 +25,14 @@ class TickerText extends SingleChildRenderObjectWidget {
       effectiveTextStyle = defaultTextStyle.style.merge(style);
     }
     return RenderTicker(
-        value, effectiveTextStyle!, verticalOffset, Directionality.of(context));
+      data: data,
+      direction: Directionality.of(context),
+      style: effectiveTextStyle!,
+      duration: duration,
+      reverseDuration: reverseDuration,
+      curve: curve,
+      vsync: vsync,
+    );
   }
 
   @override
@@ -26,45 +43,76 @@ class TickerText extends SingleChildRenderObjectWidget {
     if (style == null || style!.inherit) {
       effectiveTextStyle = defaultTextStyle.style.merge(style);
     }
-    renderObject.text = value;
+    renderObject.text = data;
     renderObject.direction = Directionality.of(context);
-    renderObject.verticalOffset = verticalOffset;
     renderObject.style = effectiveTextStyle!;
   }
 }
 
 class RenderTicker extends RenderBox {
-  RenderTicker(this._value, this._style, this._verticalOffset, this._direction)
-      : _textPainter = TextPainter(
-          text: TextSpan(text: _value, style: _style),
-          textDirection: _direction,
-        )..layout(),
-        _nextPainter = TextPainter(textDirection: _direction);
-  String _value = '';
-  late double _verticalOffset;
-  late TextDirection _direction;
-  late TextStyle _style;
+  RenderTicker({
+    required this.data,
+    required this.vsync,
+    required TextStyle style,
+    TextDirection direction = TextDirection.ltr,
+    Duration? duration,
+    Duration? reverseDuration,
+    Curve curve = Curves.linear,
+  })  : _style = style,
+        _direction = direction,
+        _textPainter = TextPainter(
+          text: TextSpan(text: data, style: style),
+          textDirection: direction,
+        ),
+        _nextPainter = TextPainter(textDirection: direction) {
+    _textPainter.layout();
+    _controller = AnimationController(
+      vsync: vsync,
+      duration: duration,
+      reverseDuration: reverseDuration,
+    )
+      ..addListener(() {
+        if (_controller.value != _lastValue) {
+          markNeedsLayout();
+        }
+      })
+      ..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          print(_lastValue);
+          _lastValue = 0.0;
+        }
+      });
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: curve,
+    );
+  }
+
+  TickerProvider vsync;
+  String data = '';
+
+  late final AnimationController _controller;
+  late final CurvedAnimation _animation;
+  double? _lastValue;
+
+  TextDirection _direction;
+  TextStyle _style;
   final TextPainter _textPainter;
   final TextPainter _nextPainter;
   String _previousValue = '';
 
-  set text(String value) {
-    if (_value == value) return;
-    _previousValue = _value;
-    _value = value;
+  set text(String val) {
+    if (data == val) return;
+    _previousValue = data;
+    data = val;
     _textPainter.text = textTextSpan;
-    markNeedsLayout();
+    _controller.reset();
+    _controller.forward();
   }
 
   set direction(TextDirection direction) {
     if (_direction == direction) return;
     _direction = direction;
-    markNeedsLayout();
-  }
-
-  set verticalOffset(double value) {
-    if (_verticalOffset == value) return;
-    _verticalOffset = value;
     markNeedsLayout();
   }
 
@@ -74,58 +122,55 @@ class RenderTicker extends RenderBox {
     markNeedsPaint();
   }
 
-  TextSpan get textTextSpan => TextSpan(text: _value, style: _style);
+  TextSpan get textTextSpan => TextSpan(text: data, style: _style);
 
   @override
   void performLayout() {
+    _lastValue = _controller.value;
     final BoxConstraints constraints = this.constraints;
-    final painter = TextPainter(
-        text: TextSpan(text: _value, style: _style), textDirection: _direction);
-    painter.layout();
     _textPainter.layout();
-    size = constraints.constrain(painter.size);
+    size = constraints.constrain(_textPainter.size);
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    if (_verticalOffset == 0.0) {
-      _textPainter.text = TextSpan(text: _value, style: _style);
-      _layoutText(
-          minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
+    if (!_controller.isAnimating) {
       _textPainter.paint(context.canvas, offset);
       return;
     }
-    double offsetX = 0.0;
     context.canvas.save();
     context.canvas
         .clipRect(Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height));
-    for (int i = 0; i < _value.length; i++) {
-      if (_value[i] == _previousValue[i]) {
-        _textPainter.text = TextSpan(text: _previousValue[i], style: _style);
-        _layoutText(
-            minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
-        _textPainter.paint(context.canvas, offset + Offset(offsetX, 0.0));
-        offsetX += _textPainter.width;
+    double offsetX = 0.0;
+    for (int i = 0; i < data.length; i++) {
+      if (data[i] == _previousValue[i]) {
+        _nextPainter.text = TextSpan(text: data[i], style: _style);
+        _nextPainter.layout();
+        _nextPainter.paint(context.canvas, offset + Offset(offsetX, 0.0));
+        offsetX += _nextPainter.width;
       } else {
-        _textPainter.text = TextSpan(text: _previousValue[i], style: _style);
-        _layoutText(
-            minWidth: constraints.minWidth, maxWidth: constraints.maxWidth);
-        _textPainter.paint(context.canvas,
-            offset + Offset(offsetX, _verticalOffset * size.height * -1));
-        _nextPainter.text = TextSpan(text: _value[i], style: _style);
+        _nextPainter.text = TextSpan(text: _previousValue[i], style: _style);
         _nextPainter.layout();
         _nextPainter.paint(context.canvas,
-            offset + Offset(offsetX, (_verticalOffset - 1) * size.height * -1));
+            offset + Offset(offsetX, _controller.value * size.height * -1));
+        _nextPainter.text = TextSpan(text: data[i], style: _style);
+        _nextPainter.layout();
+        _nextPainter.paint(
+            context.canvas,
+            offset +
+                Offset(offsetX, (_controller.value - 1) * size.height * -1));
         offsetX += _nextPainter.width;
       }
     }
     context.canvas.restore();
   }
 
-  void _layoutText({double minWidth = 0.0, double maxWidth = double.infinity}) {
-    _textPainter.layout(
-      minWidth: minWidth,
-      maxWidth: maxWidth,
-    );
+  @override
+  void dispose() {
+    _controller.dispose();
+    _animation.dispose();
+    _textPainter.dispose();
+    _nextPainter.dispose();
+    super.dispose();
   }
 }
