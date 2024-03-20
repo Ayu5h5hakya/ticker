@@ -63,9 +63,7 @@ class RenderTicker extends RenderBox {
         _textPainter = TextPainter(
           text: TextSpan(text: data, style: style),
           textDirection: direction,
-        ),
-        _nextPainter = TextPainter(textDirection: direction) {
-    _textPainter.layout();
+        ) {
     _controller = AnimationController(
       vsync: vsync,
       duration: duration,
@@ -81,18 +79,17 @@ class RenderTicker extends RenderBox {
     );
   }
 
+  TextDirection _direction;
+  TextStyle _style;
   TickerProvider vsync;
   String data = '';
+  String _previousValue = '';
 
   late final AnimationController _controller;
   late final CurvedAnimation _animation;
   double? _lastValue;
 
-  TextDirection _direction;
-  TextStyle _style;
   final TextPainter _textPainter;
-  final TextPainter _nextPainter;
-  String _previousValue = '';
 
   set text(String val) {
     if (data == val) return;
@@ -121,6 +118,7 @@ class RenderTicker extends RenderBox {
   void performLayout() {
     _lastValue = _controller.value;
     final BoxConstraints constraints = this.constraints;
+
     _textPainter.layout();
     size = constraints.constrain(_textPainter.size);
   }
@@ -137,25 +135,34 @@ class RenderTicker extends RenderBox {
     double offsetX = 0.0;
     for (int i = 0; i < data.length; i++) {
       if (data[i] == _previousValue[i]) {
-        _nextPainter.text = TextSpan(text: data[i], style: _style);
-        _nextPainter.layout();
-        _nextPainter.paint(context.canvas, offset + Offset(offsetX, 0.0));
-        offsetX += _nextPainter.width;
+        offsetX +=
+            _paintCharacter(context, offset + Offset(offsetX, 0.0), data[i]);
       } else {
-        _nextPainter.text = TextSpan(text: _previousValue[i], style: _style);
-        _nextPainter.layout();
-        _nextPainter.paint(context.canvas,
-            offset + Offset(offsetX, _controller.value * size.height * -1));
-        _nextPainter.text = TextSpan(text: data[i], style: _style);
-        _nextPainter.layout();
-        _nextPainter.paint(
-            context.canvas,
+        _paintCharacter(
+            context,
+            offset + Offset(offsetX, _controller.value * size.height * -1),
+            _previousValue[i]);
+        offsetX += _paintCharacter(
+            context,
             offset +
-                Offset(offsetX, (_controller.value - 1) * size.height * -1));
-        offsetX += _nextPainter.width;
+                Offset(offsetX, (_controller.value - 1) * size.height * -1),
+            data[i]);
       }
     }
     context.canvas.restore();
+  }
+
+  double _paintCharacter(
+    PaintingContext context,
+    Offset offset,
+    String character,
+  ) {
+    TextPainter charPainter = TextPainter(
+        text: TextSpan(text: character, style: _style),
+        textDirection: _direction);
+    charPainter.layout();
+    charPainter.paint(context.canvas, offset);
+    return charPainter.width;
   }
 
   @override
@@ -163,7 +170,6 @@ class RenderTicker extends RenderBox {
     _controller.dispose();
     _animation.dispose();
     _textPainter.dispose();
-    _nextPainter.dispose();
     super.dispose();
   }
 }
