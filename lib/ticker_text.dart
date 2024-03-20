@@ -57,7 +57,7 @@ class RenderTicker extends RenderBox {
     TextDirection direction = TextDirection.ltr,
     Duration? duration,
     Duration? reverseDuration,
-    Curve curve = Curves.linear,
+    Curve curve = Curves.ease,
   })  : _style = style,
         _direction = direction,
         _textPainter = TextPainter(
@@ -70,16 +70,9 @@ class RenderTicker extends RenderBox {
       vsync: vsync,
       duration: duration,
       reverseDuration: reverseDuration,
-    )
-      ..addListener(() {
+    )..addListener(() {
         if (_controller.value != _lastValue) {
           markNeedsLayout();
-        }
-      })
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          print(_lastValue);
-          _lastValue = 0.0;
         }
       });
     _animation = CurvedAnimation(
