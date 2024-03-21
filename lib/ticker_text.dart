@@ -6,7 +6,7 @@ class TickerText extends LeafRenderObjectWidget {
     super.key,
     this.style,
     this.curve = Curves.linear,
-    this.duration = const Duration(milliseconds: 100),
+    this.duration = const Duration(milliseconds: 200),
     this.reverseDuration,
     required this.vsync,
   });
@@ -143,7 +143,7 @@ class RenderTicker extends RenderBox {
           destinationRect.left, destinationRect.top, 0.0)
         ..scale(scaleX, scaleY, 1.0);
 
-      final Rect bounds = offset & Size(size.width, 280.0);
+      final Rect bounds = (offset + Offset(0, 50)) & Size(size.width, 200.0);
       context.canvas.save();
       context.canvas.clipRect(bounds);
       layer = context.pushTransform(
@@ -156,7 +156,7 @@ class RenderTicker extends RenderBox {
       );
       context.canvas.restore();
     } else {
-      final Rect bounds = offset & Size(size.width, 280.0);
+      final Rect bounds = (offset + Offset(0, 50)) & Size(size.width, 200.0);
       context.canvas.save();
       context.canvas.clipRect(bounds);
       _paintText(context, offset);
