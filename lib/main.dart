@@ -29,7 +29,7 @@ class TickingText extends StatefulWidget {
 
 class _TickingTextState extends State<TickingText>
     with SingleTickerProviderStateMixin {
-  int _value = 90;
+  int _value = 500;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +56,7 @@ class _TickingTextState extends State<TickingText>
             },
             child: SizedBox(
               width: 256,
+              height: 256,
               child: TickerText(
                 _value.toString(),
                 style: const TextStyle(
