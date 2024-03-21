@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:ticker/ticker_text.dart';
 
@@ -31,16 +33,51 @@ class _TickingTextState extends State<TickingText>
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _value++;
-        });
-      },
-      child: TickerText(
-        _value.toString(),
-        style: const TextStyle(color: Colors.black, fontSize: 24.0),
-        vsync: this,
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          FloatingActionButton(
+              backgroundColor: Colors.black,
+              child: const Icon(
+                Icons.remove,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  _value--;
+                });
+              }),
+          InkWell(
+            onTap: () {
+              setState(() {
+                _value++;
+              });
+            },
+            child: SizedBox(
+              width: 256,
+              child: TickerText(
+                _value.toString(),
+                style: const TextStyle(
+                    color: Colors.black,
+                    fontSize: 256.0,
+                    fontFeatures: [FontFeature.tabularFigures()]),
+                vsync: this,
+              ),
+            ),
+          ),
+          FloatingActionButton(
+              backgroundColor: Colors.black,
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                setState(() {
+                  _value++;
+                });
+              }),
+        ],
       ),
     );
   }

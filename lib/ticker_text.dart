@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 
-class TickerText extends SingleChildRenderObjectWidget {
+class TickerText extends LeafRenderObjectWidget {
   const TickerText(
     this.data, {
     super.key,
     this.style,
     this.curve = Curves.linear,
-    this.duration = const Duration(milliseconds: 500),
+    this.duration = const Duration(milliseconds: 100),
     this.reverseDuration,
     required this.vsync,
   });
@@ -91,6 +91,9 @@ class RenderTicker extends RenderBox {
 
   final TextPainter _textPainter;
 
+  bool _isOverFlowing = false;
+  Matrix4? _transform;
+
   set text(String val) {
     if (data == val) return;
     _previousValue = data;
@@ -117,21 +120,55 @@ class RenderTicker extends RenderBox {
   @override
   void performLayout() {
     _lastValue = _controller.value;
+    _isOverFlowing = false;
     final BoxConstraints constraints = this.constraints;
 
     _textPainter.layout();
     size = constraints.constrain(_textPainter.size);
+    _isOverFlowing =
+        _textPainter.width > size.width || _textPainter.height > size.height;
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_isOverFlowing) {
+      final alignment = Alignment.center.resolve(_direction);
+      final FittedSizes sizes =
+          applyBoxFit(BoxFit.contain, _textPainter.size, size);
+      final double scaleX = sizes.destination.width / sizes.source.width;
+      final double scaleY = sizes.destination.height / sizes.source.height;
+      final Rect destinationRect =
+          alignment.inscribe(sizes.destination, Offset.zero & size);
+      _transform = Matrix4.translationValues(
+          destinationRect.left, destinationRect.top, 0.0)
+        ..scale(scaleX, scaleY, 1.0);
+
+      final Rect bounds = offset & Size(size.width, 280.0);
+      context.canvas.save();
+      context.canvas.clipRect(bounds);
+      layer = context.pushTransform(
+        needsCompositing,
+        offset,
+        _transform!,
+        (context, offset) {
+          _paintText(context, offset);
+        },
+      );
+      context.canvas.restore();
+    } else {
+      final Rect bounds = offset & Size(size.width, 280.0);
+      context.canvas.save();
+      context.canvas.clipRect(bounds);
+      _paintText(context, offset);
+      context.canvas.restore();
+    }
+  }
+
+  void _paintText(PaintingContext context, Offset offset) {
     if (!_controller.isAnimating) {
       _textPainter.paint(context.canvas, offset);
       return;
     }
-    context.canvas.save();
-    context.canvas
-        .clipRect(Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height));
     double offsetX = 0.0;
     for (int i = 0; i < data.length; i++) {
       if (data[i] == _previousValue[i]) {
@@ -149,7 +186,6 @@ class RenderTicker extends RenderBox {
             data[i]);
       }
     }
-    context.canvas.restore();
   }
 
   double _paintCharacter(
@@ -158,7 +194,10 @@ class RenderTicker extends RenderBox {
     String character,
   ) {
     TextPainter charPainter = TextPainter(
-        text: TextSpan(text: character, style: _style),
+        text: TextSpan(
+          text: character,
+          style: _style,
+        ),
         textDirection: _direction);
     charPainter.layout();
     charPainter.paint(context.canvas, offset);
